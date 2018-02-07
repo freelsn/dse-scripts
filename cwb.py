@@ -20,11 +20,6 @@ class RunCommand:
     def __init__(self, filename, processname):
         self.filename = filename
         self.processname = processname
-        # attributes
-        self.attr_array = ('array=REG', 'array=RAM',
-                           'array=EXPAND,array_index=const', 'array=LOGIC')
-        self.attr_loop = ('unroll_times=', 'folding=')
-        self.attr_func = ('func=inline', 'func=goto')
 
     def __repr__(self):
         return ('{self.__class__.__name__}('
@@ -43,6 +38,7 @@ class RunCommand:
         return cmd
 
     def run_cmd(self, cmd=None, debug=False):
+        logging.info(cmd)
         if debug:
             print(cmd)
             return cmd
