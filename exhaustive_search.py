@@ -17,6 +17,23 @@ def set_attributes(benchmark):
         funcs = (
             [0],
         )
+    elif 'sobel' in benchmark:
+        arrays = (
+            [0, 1, 2],
+            [0, 1, 2],
+            [0, 1, 2],
+            [0, 1, 2],
+        )
+        loops = (
+            {0: [0, 'all'], 1: [1]},
+            {0: [0, 'all'], 1: [1]},
+            {0: [0, 'all'], 1: [1]},
+            {0: [0, 'all'], 1: [1]},
+            {0: [0, 'all'], 1: [1]},
+        )
+        funcs = (
+            [0],
+        )
 
     return arrays, loops, funcs
 
