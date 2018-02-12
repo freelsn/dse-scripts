@@ -4,6 +4,7 @@ import sys
 import time
 
 from cwb import *
+from attributes import *
 
 
 def set_attributes(benchmark):
@@ -339,32 +340,31 @@ def main(source_file, processname, platform, clock, debug):
     combo_loops = np.array(np.meshgrid(*loops)).T.reshape(-1, len(loops))
     combo_funcs = np.array(np.meshgrid(*funcs)).T.reshape(-1, len(funcs))
     # attributes
-    attr_array = ('array=REG', 'array=RAM',
-                  'array=EXPAND,array_index=const', 'array=LOGIC')
-    attr_loop = ('unroll_times=', 'folding=')
-    attr_func = ('func=inline', 'func=goto')
-    fu_ratio = ('-100', '-50', '0', '50', '100')
+    # attr_array = ('array=REG', 'array=RAM',
+    #               'array=EXPAND,array_index=const', 'array=LOGIC')
+    # attr_loop = ('unroll_times=', 'folding=')
+    # attr_func = ('func=inline', 'func=goto')
+    # fu_ratio = ('-100', '-50', '0', '50', '100')
     # start
     counter = 0
     for array_i in combo_arrays:
         for loop_i in combo_loops:
             for func_i in combo_funcs:
                 attr = {'ATTR': 'Cyber'}
-                # array
+                # assign attributes
                 for i, v in enumerate(array_i):
                     key = f'ARRAY_{i+1}'
                     value = attr_array[v]
                     attr[key] = value
-                # loop
                 for i, v in enumerate(loop_i):
                     key = f'LOOP_{i+1}'
                     value = f'{attr_loop[v[0]]}{v[1]}'
                     attr[key] = value
-                # func
                 for i, v in enumerate(func_i):
                     key = f'FUNC_{i+1}'
                     value = attr_func[v]
                     attr[key] = value
+                # iterate fu_ratios
                 for fu in fu_ratio:
                     args_bdltran = ('-a8192',)
                     start = time.time()

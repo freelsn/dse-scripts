@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 
-class GeneticAlgorithmBasic:
+class GeneticAlgorithmBasic(object):
     """Binary encoding GA"""
 
     def __init__(self,
@@ -90,7 +90,7 @@ class GeneticAlgorithmBasic:
         if self.ps_opt == 'tournament':
             self.candidates_cnt = 3
             offspring_cnt = 0
-            while offspring_cnt <= offspring_total:
+            while offspring_cnt < offspring_total:
                 # Select the candidates for dads and moms
                 dads = np.random.choice(
                     self.survival_ind, self.candidates_cnt, replace=False)
@@ -124,7 +124,7 @@ class GeneticAlgorithmBasic:
             # Generate (dad, mom)
             offspring_cnt = 0
             self.log.append('Random weights of dad and mom')
-            while offspring_cnt <= offspring_total:
+            while offspring_cnt < offspring_total:
                 dad = np.random.random()  # [0, 1)
                 mom = np.random.random()  # [0, 1)
                 self.log.append('{},{}'.format(dad, mom))

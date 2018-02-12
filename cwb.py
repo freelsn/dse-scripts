@@ -125,9 +125,12 @@ class ReadReport:
     def to_string(data, separator=','):
         # convert list of any type to string
         if isinstance(data, list):
-            data_str = [str(i) for i in data]
+            data_str = [str(i).replace(',', '+') for i in data]
         elif isinstance(data, dict):
-            data_str = [f'{key}={value}' for key, value in data.items()]
+            # data_str = [f'{key}={value}' for key, value in data.items()]
+            data_str = ['{}={}'.format(key.replace(',', '+'),
+                                       value.replace(',', '+'))
+                        for key, value in data.items()]
         return (separator.join(data_str))
 
     def csv(self):
@@ -139,7 +142,7 @@ class ReadReport:
         return dict(zip(headers, values))
 
     def save_result(self, filename='result.csv', attr=None,
-                    fu_ratio=None, debug=False):
+                    fu_ratio=None, debug=False, return_csv=True):
         # write results of csv to a file
         data_csv = self.csv()
         header = list(data_csv.keys())
@@ -166,6 +169,8 @@ class ReadReport:
                 content = header_str + values_str
             with open(filename, 'a') as f:
                 f.write(content)
+        if return_csv:
+            return data_csv
 
 
 def test():
@@ -200,6 +205,7 @@ def hls(source_file=None,
                     #  'ARRAY_1': 'array=REG', 'LOOP_1': 'folding=1'}
         debug=False,
         save_result=True,
+        return_csv=True,
         args_pars=(),  # tuple
         args_bdltran=(),  # tuple
         kwargs_pars=dict(),  # dict
@@ -230,12 +236,17 @@ def hls(source_file=None,
                 log += ReadReport.to_string(kwargs_bldtran) + '\n'
             log += 'bdltran passed\n'
             rr = ReadReport(processname, './')
-            rr.save_result(attr=attr, fu_ratio=fu_ratio)
+            data_csv = rr.save_result(attr=attr, fu_ratio=fu_ratio,
+                                      return_csv=return_csv)
         else:
             log += 'bdltran failed\n'
+            data_csv = None
     else:
         log += 'parsing failed'
+        data_csv = None
     logging.info(log)
+    if return_csv:
+        return data_csv
 
 
 def delete_existing_file(filename):

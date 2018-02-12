@@ -9,21 +9,21 @@ class MultiObjective:
     def __init__(self):
         super().__init__()
 
-
-    def remove_duplicates(self, data):
+    @staticmethod
+    def remove_duplicates(data):
         '''
         For Numpy 2-D array, remove the duplications.
         '''
 
         return np.vstack({tuple(row) for row in data})
 
-
-    def is_pareto_efficient(self, data, mode='default'):
+    @staticmethod
+    def is_pareto_efficient(data, mode='default'):
         '''
         Given the points in the searching space, return the vector indicting if a point is or is not on the trade-off cure.
         '''
 
-        self.is_efficient = np.ones(data.shape[0], dtype=bool)
+        is_efficient = np.ones(data.shape[0], dtype=bool)
         for i, c in enumerate(data):
             if mode == 'default':
                 data_t = data[~np.all(data == c, axis=1)]
@@ -33,8 +33,8 @@ class MultiObjective:
                 dim_1 = np.array(data_t[:,1]>c[1]).reshape(data.shape[0]-1, 1)
                 arr_t = np.append(dim_0, dim_1, axis=1)
 
-            self.is_efficient[i] = np.all(np.any(arr_t, axis=1))
-        return self.is_efficient
+            is_efficient[i] = np.all(np.any(arr_t, axis=1))
+        return is_efficient
 
 
     def print_trade_off(self,
