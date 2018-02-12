@@ -244,14 +244,7 @@ class GeneticAlgorithmMultiObjective(GeneticAlgorithmBasic):
         self.log = ['']
 
 
-if __name__ == '__main__':
-    argvs = sys.argv
-
-    source_file = argvs[1]
-    processname = argvs[2]
-    platform = argvs[3]
-    clock = argvs[4]
-
+def main():
     delete_existing_file('all.log')
     delete_existing_file('result.csv')
 
@@ -261,9 +254,32 @@ if __name__ == '__main__':
     ga_mo.processname = processname
     ga_mo.platform = platform
     ga_mo.clock = clock
+    ga_mo.pop_size = 20
+    ga_mo.co_opt = 'multi'
+    ga_mo.max_iterations = 100
+    ga_mo.stop_val = 10
+    ga_mo.pf_cnt = 3
+    ga_mo.method = 'WeightedSum'
 
+    # aes, -c2000
+    if 'aes' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 11
+        ga_mo.loop_cnt = 23
+        ga_mo.func_cnt = 10
+        ga_mo.unroll_opt = [[0, 'all'], [0, 'all'], [0, 'all'], [0, 'all'],
+                            [0, 'all'], [0, 'all'], [0, 'all'], [0, 'all'],
+                            [0, 'all'], [0, 'all'], [0, 'all'], [0, 'all'],
+                            [0, 'all'], [0, 'all'], [0, 'all'], [0, 'all'],
+                            [0, 'all'], [0, 'all'], [0, 'all'], [0, 'all'],
+                            [0, 'all'], [0, 'all'], [0, 'all']]
+        ga_mo.folding_opt = [0, 1]
+        ga_mo.pop_size = 64
     # average, -c1000
-    if 'average' in ga_mo.source_file:
+    elif 'average' in ga_mo.source_file:
         ga_mo.array_bw = 2
         ga_mo.loop_bw = 3
         ga_mo.func_bw = 1
@@ -273,15 +289,74 @@ if __name__ == '__main__':
         ga_mo.func_cnt = 0
         ga_mo.unroll_opt = [[0, 3, 4, 'all'], [0, 3, 4, 'all']]
         ga_mo.folding_opt = [0, 1]
+    # dct, -c1000
+    elif 'dct' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 3
+        ga_mo.loop_cnt = 7
+        ga_mo.func_cnt = 0
+        ga_mo.unroll_opt = [[0, 'all'], [0, 'all'], [0, 'all'], [0, 'all'],
+                            [0, 'all'], [0, 'all'], [0, 'all']]
+        ga_mo.folding_opt = [0, 1]
+        ga_mo.pop_size = 64
+    # huffman, -c1000
+    elif 'huffman' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 12
+        ga_mo.loop_cnt = 9
+        ga_mo.func_cnt = 1
+        ga_mo.unroll_opt = [[0, 'all'], [0, 'all'], [0, 'all'], [0, 'all'],
+                            [0, 'all'], [0, 'all'], [0, 'all'], [0, 'all'],
+                            [0, 'all']]
+        ga_mo.folding_opt = [0, 1]
+        ga_mo.pop_size = 64
+    # quantization, -c1000
+    elif 'quantization' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 3
+        ga_mo.loop_cnt = 6
+        ga_mo.func_cnt = 0
+        ga_mo.unroll_opt = [[0, 'all'], [0, 'all'], [0, 'all'], [0, 'all'],
+                            [0, 'all'], [0, 'all']]
+        ga_mo.folding_opt = [0, 1]
+        ga_mo.pop_size = 64
+    # snow3g, -c2000
+    elif 'snow3g' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 3
+        ga_mo.loop_cnt = 4
+        ga_mo.func_cnt = 8
+        ga_mo.unroll_opt = [[0, 'all'],[0, 'all'],[0, 'all'],[0, 'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
+    else:
+        raise Exception('Unsupported benchmark')
 
-    ga_mo.pop_size = 20
-    ga_mo.co_opt = 'multi'
-    ga_mo.max_iterations = 100
-    ga_mo.stop_val = 10
-    ga_mo.pf_cnt = 3
-    ga_mo.method = 'WeightedSum'
 
     start_time = time.time()
     ga_mo.main()
     end_time = time.time()
     logging.info('The running time is: {}'.format(end_time - start_time))
+
+
+if __name__ == '__main__':
+    argvs = sys.argv
+
+    source_file = argvs[1]
+    processname = argvs[2]
+    platform = argvs[3]
+    clock = argvs[4]
+
+    main()
