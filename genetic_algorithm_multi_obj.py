@@ -261,8 +261,20 @@ def main():
     ga_mo.pf_cnt = 3
     ga_mo.method = 'WeightedSum'
 
+    # adpcm_encoder, -c10000
+    if 'adpcm_encoder' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 3
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 1
+        ga_mo.loop_cnt = 1
+        ga_mo.func_cnt = 2
+        ga_mo.unroll_opt = [[0,6,9,'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 20
     # aes, -c2000
-    if 'aes' in ga_mo.source_file:
+    elif 'aes' in ga_mo.source_file:
         ga_mo.array_bw = 2
         ga_mo.loop_bw = 2
         ga_mo.func_bw = 1
@@ -277,6 +289,19 @@ def main():
                             [0, 'all'], [0, 'all'], [0, 'all'], [0, 'all'],
                             [0, 'all'], [0, 'all'], [0, 'all']]
         ga_mo.folding_opt = [0, 1]
+        ga_mo.pop_size = 64
+    # ann, -c4000
+    elif 'ann' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 3
+        ga_mo.loop_cnt = 6
+        ga_mo.func_cnt = 2
+        ga_mo.unroll_opt = [[0,'all'],[0,'all'],[0,'all'],
+                                 [0,'all'],[0,'all'],[0,'all']]
+        ga_mo.folding_opt = [0,1]
         ga_mo.pop_size = 64
     # average, -c1000
     elif 'average' in ga_mo.source_file:
@@ -302,6 +327,45 @@ def main():
                             [0, 'all'], [0, 'all'], [0, 'all']]
         ga_mo.folding_opt = [0, 1]
         ga_mo.pop_size = 64
+    # decimation, -c2000
+    elif 'decimation' in ga_mo.source_file:
+        ga_mo.array_bw = 1
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 10
+        ga_mo.loop_cnt = 15
+        ga_mo.func_cnt = 0
+        ga_mo.unroll_opt = [[0,'all'],[0,'all'],[0,'all'],[0,'all'],[0,'all'],
+                                 [0,'all'],[0,'all'],[0,'all'],[0,'all'],[0,'all'],
+                                 [0,'all'],[0,'all'],[0,'all'],[0,'all'],[0,'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
+    # fft_fixed, -c4000
+    elif 'fft_fixed' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 2
+        ga_mo.loop_cnt = 7
+        ga_mo.func_cnt = 0
+        ga_mo.unroll_opt = [[0,'all'],[0,'all'],[0,'all'],
+                                 [0,'all'],[0,'all'],[0,'all'],[0,'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
+    # fir, -c2000
+    elif 'fir' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 3
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 2
+        ga_mo.loop_cnt = 2
+        ga_mo.func_cnt = 0
+        ga_mo.unroll_opt = [[0, 4, 5,'all'],[0, 4, 5,'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
     # huffman, -c1000
     elif 'huffman' in ga_mo.source_file:
         ga_mo.array_bw = 2
@@ -316,6 +380,70 @@ def main():
                             [0, 'all']]
         ga_mo.folding_opt = [0, 1]
         ga_mo.pop_size = 64
+    # idct, -c10000
+    elif 'idct' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 3
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 5
+        ga_mo.loop_cnt = 4
+        ga_mo.func_cnt = 0
+        ga_mo.unroll_opt = [[0,2,4,8],[0,2,4,8],[0,2,4,8],[0,2,4,8]]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
+    # interpolation, -c4000
+    elif 'interpolation' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 3
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 5
+        ga_mo.loop_cnt = 5
+        ga_mo.func_cnt = 0
+        ga_mo.unroll_opt = [[0,'all'],[0,2,4,'all'],[0,2,4,'all'],
+                                 [0,2,4,'all'],[0,2,4,'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
+    # kasumi, -c50000
+    elif 'kasumi' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 3
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 3
+        ga_mo.loop_cnt = 6
+        ga_mo.func_cnt = 3
+        ga_mo.unroll_opt = [[0,'all'],[0,'all'],[0,2,4,'all'],
+                                 [0,2,4,'all'],[0,2,4,'all'],[0,2,4,'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
+    # md5c, -c50000
+    elif 'md5c' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 3
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 7
+        ga_mo.loop_cnt = 8
+        ga_mo.func_cnt = 9
+        ga_mo.unroll_opt = [[0,'all'],[0,'all'],[0,16,32,'all'],[0,'all'],
+                                 [0,'all'],[0,4,'all'],[0,'all'],[0,4,8,'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
+    # qsort, -c2000
+    elif 'qsort' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 3
+        ga_mo.loop_cnt = 6
+        ga_mo.func_cnt = 1
+        ga_mo.unroll_opt = [[0,'all'],[0,'all'],[0,'all'],
+                                 [0,'all'],[0,'all'],[0,'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
     # quantization, -c1000
     elif 'quantization' in ga_mo.source_file:
         ga_mo.array_bw = 2
@@ -329,6 +457,19 @@ def main():
                             [0, 'all'], [0, 'all']]
         ga_mo.folding_opt = [0, 1]
         ga_mo.pop_size = 64
+    # rle, -c1000
+    elif 'rle' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 3
+        ga_mo.loop_cnt = 8
+        ga_mo.func_cnt = 1
+        ga_mo.unroll_opt = [[0,'all'],[0,'all'],[0,'all'],[0,'all'],
+                                 [0,'all'],[0,'all'],[0,'all'],[0,'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
     # snow3g, -c2000
     elif 'snow3g' in ga_mo.source_file:
         ga_mo.array_bw = 2
@@ -339,6 +480,18 @@ def main():
         ga_mo.loop_cnt = 4
         ga_mo.func_cnt = 8
         ga_mo.unroll_opt = [[0, 'all'],[0, 'all'],[0, 'all'],[0, 'all']]
+        ga_mo.folding_opt = [0,1]
+        ga_mo.pop_size = 64
+    # sobel, -c2000
+    elif 'sobel' in ga_mo.source_file:
+        ga_mo.array_bw = 2
+        ga_mo.loop_bw = 2
+        ga_mo.func_bw = 1
+        ga_mo.fu_ratio_bw = 3
+        ga_mo.array_cnt = 4
+        ga_mo.loop_cnt = 5
+        ga_mo.func_cnt = 0
+        ga_mo.unroll_opt = [[0,'all'],[0,'all'],[0,'all'],[0,'all'],[0,'all']]
         ga_mo.folding_opt = [0,1]
         ga_mo.pop_size = 64
     else:
