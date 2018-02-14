@@ -28,14 +28,15 @@ class MultiObjective:
             if mode == 'default':
                 data_t = data[~np.all(data == c, axis=1)]
                 arr_t = data_t > c
-            else: # Customized objectives
-                dim_0 = np.array(data_t[:,0]>c[0]).reshape(data.shape[0]-1, 1)
-                dim_1 = np.array(data_t[:,1]>c[1]).reshape(data.shape[0]-1, 1)
+            else:  # Customized objectives
+                dim_0 = np.array(data_t[:, 0] > c[0]).reshape(
+                    data.shape[0] - 1, 1)
+                dim_1 = np.array(data_t[:, 1] > c[1]).reshape(
+                    data.shape[0] - 1, 1)
                 arr_t = np.append(dim_0, dim_1, axis=1)
 
             is_efficient[i] = np.all(np.any(arr_t, axis=1))
         return is_efficient
-
 
     def print_trade_off(self,
                         data_frame,
@@ -69,8 +70,8 @@ class MultiObjective:
             display(data_frame[data_frame['Trade-off']
                                == True].sort_values(y_axis))
 
-        self.pf = data_frame[data_frame['Trade-off'] == True].sort_values(y_axis)
-
+        self.pf = data_frame[data_frame['Trade-off']
+                             == True].sort_values(y_axis)
 
     def coverage(self, points):
         '''
@@ -83,7 +84,6 @@ class MultiObjective:
             hypervolume += (i[0] - obj_1) * i[1]
             obj_1 = i[0]
         return hypervolume
-
 
     def measure(self, ref=None, appox=None):
         '''
@@ -115,7 +115,8 @@ class MultiObjective:
         adrs_ave = adrs_max = 0.0
         for r in ref_buf:
             sigmoid = (appox_buf - r) / r
-            sigmoid = np.append(np.zeros(appox_cnt).reshape(-1, 1), sigmoid, axis=1)
+            sigmoid = np.append(
+                np.zeros(appox_cnt).reshape(-1, 1), sigmoid, axis=1)
             sigmoid = np.max(sigmoid, axis=1)
             sigmoid_min = sigmoid.min()
             adrs_ave += sigmoid_min
