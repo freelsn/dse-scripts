@@ -1,4 +1,11 @@
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV
 
 from multi_objective import MultiObjective
 
@@ -38,29 +45,62 @@ class TrainModel(MultiObjective):
         self.train()
 
 
-class NavieMethod(MultiObjective):
-    def __init__(self):
-        self.df = None
-        
+class DirectMapping(object):
+    """Simply mapping trade-off on ASIC to FPGA."""
+
+    @staticmethod
+    def main(df, display_table=False, plot_figure=False):
+        objectives_asic = ['Latency', 'AREA']
+        objectives_fpga = ['Latency', 'Slices']
+        pf_asic_bool = MultiObjective.is_pareto_efficient(df.as_matrix(columns=objectives_asic))
+        pf_fpga = df[MultiObjective.is_pareto_efficient(df.as_matrix(columns=objectives_fpga))].as_matrix(columns=objectives_fpga)
+        pf_fpga_predicted = df[pf_asic_bool].as_matrix(columns=objectives_fpga)
+
+        MultiObjective.visulize_trade_off(df, display_table=display_table, plot_figure=plot_figure)
+
+        return MultiObjective.measure(pf_fpga, pf_fpga_predicted)
+
+
+class TrainOneBenchmark(object):
+    """Train a random benchmark, and predict the rest benchmarks."""
+
+    def __init__(self, df):
+        self.df = df
+        self.distribution = 'Latency'
+        self.target = 'Slices'
+        self.threshold = 0
+        self.features = None
+
+    def stratify_split_data(self):
+        """Stratify splitting the data according to the distribution"""
+        split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        for train_index, test_index in split.split(self.df, self.distribution):
+            strat_train_set = self.df.iloc[train_index]
+            strat_test_set = self.df.iloc[test_index]
+        return strat_train_set, strat_test_set
+
+    def select_features(self):
+        """Select features based on the correlation with target"""
+        df = self.df.drop(['Latency'], axis=1)
+        corr_matrix = df.corr()[self.target].sort_values(ascending=False)
+        features = list(corr_matrix[corr_matrix > self.threshold].keys())
+        features.remove(self.target)
+        self.features = features
+        return features
 
     def main(self):
-        self.df['pf_asic'] = self.is_pareto_efficient(self.df.as_matrix(columns=['Latency', 'AREA']))
-        self.df['pf_fpga'] = self.is_pareto_efficient(self.df.as_matrix(columns=['Latency', 'fpga_area']))
-        
-        pf_pred = self.df[self.df['pf_asic'] == True].as_matrix(columns=['Latency', 'fpga_area'])
-        pf_fpga = self.df[self.df['pf_fpga'] == True].as_matrix(columns=['Latency', 'fpga_area'])
-        
-        self.measure(pf_fpga, pf_pred)
-        
-        self.pf_pred = pf_pred
-        self.pf_fpga = pf_fpga
-        
-        
-    def visulize(self):
-        entire_space = self.df.as_matrix(columns=['Latency', 'fpga_area'])
-        # Fig.1: accurate trade-off, Fig.2: predicted trade-off
-        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 4))
-        axes[0].plot(entire_space[:, 0], entire_space[:, 1], 'bo', alpha=0.2)
-        axes[0].plot(self.pf_fpga[:, 0], self.pf_fpga[:, 1], 'ro', alpha=0.2)
-        axes[1].plot(entire_space[:, 0], entire_space[:, 1], 'bo', alpha=0.2)
-        axes[1].plot(self.pf_pred[:, 0], self.pf_pred[:, 1], 'ro', alpha=0.2)
+        X_train =
+        self.select_features()
+        # feature scaling
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(self.df[self.features])
+        # select and train a model
+        X_train_prepared = X_train_scaled.copy()
+        model = RandomForestRegressor()
+        param_grid = [
+            {'n_estimators': [3, 10, 30], 'max_features': list(range(1, len(self.features) + 1, 2))},
+            {'bootstrap': [False], 'n_estimators': [3, 10], 'max_features': list(range(1, (len(self.features) + 1) / 2))},
+        ]
+        grid_search = GridSearchCV(model, param_grid, cv=5, scoring='neg_mean_squared_error')
+        grid_search.fit(X_train_prepared, y_train)
+        self.estimator = grid_search.best_estimator_

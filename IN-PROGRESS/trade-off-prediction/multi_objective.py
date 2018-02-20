@@ -2,27 +2,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 # To display pd.DataFrame
 from IPython.display import display
+np.set_printoptions(precision=2)
+np.set_printoptions(suppress=True)
 
 
-class MultiObjective:
-
-    def __init__(self):
-        super().__init__()
+class MultiObjective(object):
+    """Functions for multi-objective optimization."""
 
     @staticmethod
     def remove_duplicates(data):
-        '''
-        For Numpy 2-D array, remove the duplications.
-        '''
-
+        """For Numpy 2-D array, remove the duplications."""
         return np.vstack({tuple(row) for row in data})
 
     @staticmethod
     def is_pareto_efficient(data, mode='default'):
-        '''
-        Given the points in the searching space, return the vector indicting if a point is or is not on the trade-off cure.
-        '''
-
+        """Given the points in the searching space,
+        return the vector indicting if a point is or is not
+        on the trade-off cure."""
         is_efficient = np.ones(data.shape[0], dtype=bool)
         for i, c in enumerate(data):
             if mode == 'default':
@@ -38,45 +34,9 @@ class MultiObjective:
             is_efficient[i] = np.all(np.any(arr_t, axis=1))
         return is_efficient
 
-    def print_trade_off(self,
-                        data_frame,
-                        x_axis='Latency',
-                        y_axis='AREA',
-                        table_display=False,
-                        show_figures=False,
-                        ylim=0):
-        # Pareto optima
-        data_frame['Trade-off'] = self.is_pareto_efficient(
-            data_frame.as_matrix(columns=[x_axis, y_axis]))
-        pareto_optimal = data_frame[data_frame['Trade-off'] == True]
-
-        # Plot
-        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 4))
-        data_frame.plot(kind='scatter', x=x_axis,
-                        y=y_axis, alpha=0.2, ax=axes[0])
-        pareto_optimal.plot(kind='scatter', x=x_axis, y=y_axis,
-                            color='red', alpha=0.2, ax=axes[0])
-
-        if ylim != 0:
-            data_frame[data_frame['Trade-off'] == False].plot(
-                kind='scatter', x=x_axis, y=y_axis, alpha=0.2, ax=axes[1])
-            pareto_optimal.plot(kind='scatter', x=x_axis,
-                                y=y_axis, color='red', alpha=0.2, ax=axes[1])
-            axes[1].set_ylim(ylim)
-        if show_figures:
-            plt.show()
-
-        if table_display:
-            display(data_frame[data_frame['Trade-off']
-                               == True].sort_values(y_axis))
-
-        self.pf = data_frame[data_frame['Trade-off']
-                             == True].sort_values(y_axis)
-
-    def coverage(self, points):
-        '''
-        Area covered by the Pareto front.
-        '''
+    @staticmethod
+    def coverage(points):
+        """Area covered by the Pareto front."""
         points_sorted = points[points[:, 1].argsort()][::-1]
         hypervolume = 0
         obj_1 = 0
@@ -85,14 +45,12 @@ class MultiObjective:
             obj_1 = i[0]
         return hypervolume
 
-    def measure(self, ref=None, appox=None):
-        '''
-        Metric measurement.
-        '''
-
+    @staticmethod
+    def measure(ref=None, appox=None):
+        """Metric measurement."""
         # Clean up the data
-        ref_buf = self.remove_duplicates(ref)
-        appox_buf = self.remove_duplicates(appox)
+        ref_buf = MultiObjective.remove_duplicates(ref)
+        appox_buf = MultiObjective.remove_duplicates(appox)
         ref_cnt = ref_buf.shape[0]
         appox_cnt = appox_buf.shape[0]
 
@@ -107,11 +65,12 @@ class MultiObjective:
             adrs_ave += distance
             adrs_max = distance if distance > adrs_max else adrs_max
 
-        self.adrs_ave_rms = adrs_ave / ref_cnt
-        self.adrs_max_rms = adrs_max
+        adrs_ave_rms = adrs_ave / ref_cnt
+        adrs_max_rms = adrs_max
 
         # ADRS, standard
-        # MULTICUBE: Multi-Objective Design Space Exploration of Multi-Core Architectures
+        # MULTICUBE: Multi-Objective Design Space Exploration of
+        #            Multi-Core Architectures
         adrs_ave = adrs_max = 0.0
         for r in ref_buf:
             sigmoid = (appox_buf - r) / r
@@ -121,24 +80,64 @@ class MultiObjective:
             sigmoid_min = sigmoid.min()
             adrs_ave += sigmoid_min
             adrs_max = sigmoid_min if sigmoid_min > adrs_max else adrs_max
-        self.adrs_ave = adrs_ave / ref_cnt
-        self.adrs_max = adrs_max
+        adrs_ave = adrs_ave / ref_cnt
+        adrs_max = adrs_max
 
         # Hyper-volume
         # Data transform
         ref_reciprocal = 1 / ref_buf
         appox_reciprocal = 1 / appox_buf
 
-        self.hypervolume_ref = self.coverage(ref_reciprocal)
-        self.hypervolume_appox = self.coverage(appox_reciprocal)
-        self.hypervolume_ratio = self.hypervolume_appox / self.hypervolume_ref
+        hypervolume_ref = MultiObjective.coverage(ref_reciprocal)
+        hypervolume_appox = MultiObjective.coverage(appox_reciprocal)
+        hypervolume_ratio = hypervolume_appox / hypervolume_ref
 
         # Pareto dominance
         dominance = 0
         for i in appox_buf:
             if i.tolist() in ref_buf.tolist():
                 dominance += 1
-        self.dominance = dominance / ref_cnt
+        dominance = dominance / ref_cnt
 
         # Cardinality
-        self.cardinality = appox_cnt
+        cardinality = appox_cnt
+
+        return {'adrs_ave': adrs_ave, 'adrs_max': adrs_max,
+                'adrs_ave_rms': adrs_ave_rms, 'adrs_max_rms': adrs_max_rms,
+                'hypervolume': hypervolume_ratio, 'dominance': dominance,
+                'cardinality': cardinality}
+
+    @staticmethod
+    def visulize_trade_off(df, display_table=False, plot_figure=False):
+        """In FPGA design space, plot the accurate trade-off curve,
+        and plot the points from ASIC trade-off curve."""
+        objectives_asic = ['Latency', 'AREA']
+        objectives_fpga = ['Latency', 'Slices']
+        pf_asic_bool = MultiObjective.is_pareto_efficient(
+            df.as_matrix(columns=objectives_asic))
+        pf_fpga_bool = MultiObjective.is_pareto_efficient(
+            df.as_matrix(columns=objectives_fpga))
+        pf_asic = df[pf_asic_bool]
+        pf_fpga = df[pf_fpga_bool]
+        # plot
+        fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(8, 6))
+        # design space
+        df.plot(kind='scatter',
+                x=objectives_fpga[0], y=objectives_fpga[1], alpha=0.2, ax=axes)
+        # accurate trade-off curve
+        pf_fpga.plot(kind='scatter',
+                     x=objectives_fpga[0], y=objectives_fpga[1],
+                     alpha=1, color='red', s=50, ax=axes)
+        # trade-off from ASIC
+        pf_asic.plot(kind='scatter',
+                     x=objectives_fpga[0], y=objectives_fpga[1],
+                     alpha=1, color='#2ca02c', ax=axes)
+        if plot_figure:
+            plt.show()
+
+        if display_table:
+            print('The accurate Pareto set')
+            print(MultiObjective.remove_duplicates(pf_fpga[objectives_fpga].as_matrix()))
+            print('The predicted Pareto set')
+            print(MultiObjective.remove_duplicates(pf_asic[objectives_fpga].as_matrix()))
+            # display(pf_asic[objectives_fpga].sort_values('Latency'))
