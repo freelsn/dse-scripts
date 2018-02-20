@@ -1,0 +1,64 @@
+#define SIZE 9
+
+#if defined(SHIFT) || defined(SINGLE_PORT)
+in ter(7..0) idata;
+#else
+in ter(7..0) idata[SIZE];
+#endif
+out ter(7..0) odata;
+
+int sign_check(int data);
+
+var(7..0) data_t[SIZE] /* ARRAY_1 */ = {0};
+int gx[SIZE] /* ARRAY_2 */ = {
+    -1, 0, 1,
+    -2, 0, 2,
+    -1, 0, 1
+};
+int gy[SIZE] /* ARRAY_3 */ = {
+     1,  2,  1,
+     0,  0,  0,
+    -1, -2, -1
+};
+
+process main()
+{   
+    int sum_x = 0;
+    int sum_y = 0;
+    int sum;
+    #if defined(SHIFT)
+    /* LOOP_3 */
+    for (int i = SIZE - 1; i > 0; i--)
+        data_t[i] = data_t[i - 1];
+    data_t[0] = idata;
+    #elif defined(SINGLE_PORT)
+    for (int i = 0; i < SIZE; i++)
+        data_t[i] = idata;
+    #else
+    for (int i = 0; i < SIZE; i++)
+        data_t[i] = idata[i];
+    #endif
+
+    /* LOOP_1 */
+    for (int i = 0; i < SIZE; i++)
+        sum_x += data_t[i] * gx[i];
+    /* LOOP_2 */
+    for (int i = 0; i < SIZE; i++)
+        sum_y += data_t[i] * gy[i];
+
+    sum_x = sign_check(sum_x);
+    sum_y = sign_check(sum_y);
+    sum = sum_x + sum_y;
+
+    if (sum > 255) sum = 255;
+
+    odata = sum;
+}
+
+/* FUNC_1 */
+int sign_check(int data)
+{
+    if (data < 0)
+        data = -data;
+    return data;
+}

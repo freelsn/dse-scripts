@@ -1,0 +1,26 @@
+#define NUM 16
+#define BW 16
+
+in ter(0:BW) idata;
+out ter(0:BW) odata;
+
+var(0:BW) idata_t[NUM]/* ATTR ARRAY_1, ARRAY_2 */ = {0};
+process main()
+{
+    int sum;
+
+    /* ATTR LOOP_1 */
+    for (int i = NUM - 1; i > 0; i--)
+        idata_t[i] = idata_t[i - 1];
+
+    idata_t[0] = idata;
+    sum = 0;
+
+    /* ATTR LOOP_2 */
+    for (int j = 0; j < NUM; j++)
+        sum += idata_t[j];
+
+    odata = sum / NUM;
+
+    return 0;
+}

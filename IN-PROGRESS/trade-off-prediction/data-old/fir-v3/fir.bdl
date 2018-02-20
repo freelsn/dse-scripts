@@ -1,0 +1,45 @@
+#define FIR_TAPS 6
+
+in ter(0:8) idata[FIR_TAPS];
+in ter(0:16) coeff[FIR_TAPS];
+
+out ter(0:8) odata;
+
+unsigned char fir_func(unsigned char *data, unsigned short int *coeff);
+
+process main()
+{
+    var(0:8) idata_t[FIR_TAPS] /* ATTR ARRAY_1 */;
+    var(0:16) coeff_t[FIR_TAPS] /* ATTR ARRAY_2 */;
+    var(0:8) fir_out;
+    int i;
+    /* ATTR LOOP_2 */
+    for (i = 0; i < FIR_TAPS; i++)
+        idata_t[i] = idata[i];
+    /* ATTR LOOP_3 */
+    for (i = 0; i < FIR_TAPS; i++)
+        coeff_t[i] = coeff[i];
+
+    fir_out = fir_func(idata_t, coeff_t);
+
+    odata = fir_out;
+}
+
+/* ATTR FUNC_1 */
+unsigned char fir_func(unsigned char *data, unsigned short int *coeff)
+{
+    int i;
+    int sum = 0;
+    /* ATTR LOOP_1 */
+    for (i = 0; i < FIR_TAPS; i++)
+        sum += data[i] * coeff[i];
+
+    if (sum < 0)
+        sum = 0;
+    else if (sum > (255 << 10))
+        sum = 255 << 10;
+
+    sum = (sum >> 10) & 0xFF;
+
+    return sum;
+}

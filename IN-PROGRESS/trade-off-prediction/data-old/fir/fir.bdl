@@ -1,0 +1,25 @@
+#define TABS 9
+
+in ter(7..0) idata[TABS];
+
+out ter(7..0) odata;
+
+process main()
+{
+    var(7..0) idata_buf[TABS] /* ARRAY_1 */;
+    var(7..0) coeff[TABS] /* ARRAY_2 */ = {5, 3, 7, 9, 12, 5};
+    int sum = 0;
+
+    for (int i = 0; i < TABS; i++)
+        idata_buf[i] = idata[i];
+    /* LOOP_1 */
+    for (int i = 0; i < TABS; i++)
+        sum += idata_buf[i] * coeff[i];
+
+    if (sum < 0)
+        sum = 0;
+    else if (sum > (255 << 10))
+        sum = (255 << 10);
+
+    odata = (sum >> 10) & 0xFF;
+}
