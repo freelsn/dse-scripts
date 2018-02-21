@@ -89,7 +89,7 @@ class TrainOneBenchmark(object):
         return features
 
     def main(self):
-        X_train =
+        X_train = 0
         self.select_features()
         # feature scaling
         scaler = StandardScaler()
@@ -104,3 +104,8 @@ class TrainOneBenchmark(object):
         grid_search = GridSearchCV(model, param_grid, cv=5, scoring='neg_mean_squared_error')
         grid_search.fit(X_train_prepared, y_train)
         self.estimator = grid_search.best_estimator_
+
+
+def print_results(result):
+    for k, v in result.items():
+        print(f'{k}: {v}')
