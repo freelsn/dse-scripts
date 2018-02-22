@@ -1,9 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 # To display pd.DataFrame
-from IPython.display import display
-np.set_printoptions(precision=2)
-np.set_printoptions(suppress=True)
 
 
 class MultiObjective(object):
