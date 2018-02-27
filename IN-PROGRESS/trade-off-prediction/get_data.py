@@ -1,5 +1,5 @@
 import pandas as pd
-
+import pdb
 
 class GetData(object):
     """Reading data"""
@@ -38,16 +38,22 @@ class GetData(object):
 
     def _concatenate_filter_data(self, asic, fpga):
         """Merge features and labels, remove items with mismatching latency."""
-        matches = asic['Attr_with_L'] == fpga['Attr_with_L']
+        # matches = asic['Attr_with_L'] == fpga['Attr_with_L']
+        common_attr = [i for i in fpga['Attr_with_L'] if i in list(asic['Attr_with_L'])]
+        asic = asic[asic['Attr_with_L'].isin(common_attr)].reset_index()
+        fpga = fpga[fpga['Attr_with_L'].isin(common_attr)].reset_index()
         combined = pd.concat(
             [asic, fpga[['AREA']].rename(columns={'AREA': 'Slices'})], axis=1)
-        filtered = combined[matches]
+        filtered = combined
+        # filtered = combined[matches]
+
         return filtered
 
     def main(self):
         self._load_data_all()
         if self.filtering_latency:
             for i in self.benchmarks:
+                # pdb.set_trace()
                 if self.load_asic_45:
                     self.asic_45[i] = self._combine_attr_and_latency(self.asic_45[i])
                 if self.load_fpga_v4:
