@@ -19,13 +19,47 @@ class DirectMapping(object):
     def main(df, display_table=False, plot_figure=False, with_tolerance=False):
         objectives_asic = ['Latency', 'AREA']
         objectives_fpga = ['Latency', 'Slices']
-        pf_asic_bool = MultiObjective.is_pareto_efficient(df.as_matrix(columns=objectives_asic))
-        if with_tolerance:
-            pass
-        pf_fpga = df[MultiObjective.is_pareto_efficient(df.as_matrix(columns=objectives_fpga))].as_matrix(columns=objectives_fpga)
+        pf_asic_bool = MultiObjective.is_pareto_efficient(
+            df.as_matrix(columns=objectives_asic))
+
+        pf_fpga = df[MultiObjective.is_pareto_efficient(df.as_matrix(
+            columns=objectives_fpga))].as_matrix(columns=objectives_fpga)
         pf_fpga_predicted = df[pf_asic_bool].as_matrix(columns=objectives_fpga)
 
-        MultiObjective.visulize_trade_off(df, display_table=display_table, plot_figure=plot_figure)
+        if with_tolerance:
+            bounds = list()
+            for pf in df[pf_asic_bool]['AREA']:
+                bounds.append((pf * (1 + with_tolerance),
+                               pf * (1 - with_tolerance)))
+            bounds = set(bounds)
+            for i, v in enumerate(df['AREA']):
+                in_range = False
+                for bound in bounds:
+                    if v <= bound[0] and v >= bound[1]:
+                        in_range = True
+                        break
+                pf_asic_bool[i] = in_range
+
+            pf_fpga_with_tolerance = df[pf_asic_bool].as_matrix(columns=objectives_fpga)
+
+            if plot_figure:
+                fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 6))
+                for ax in axes:
+                    # design space
+                    df.plot(kind='scatter', x=objectives_fpga[0], y=objectives_fpga[1], alpha=0.2, ax=ax)
+                    # accurate trade-off curve
+                    ax.scatter(pf_fpga[:, 0], pf_fpga[:, 1], color='red', s=60)
+                # trade-off from ASIC
+                axes[0].scatter(pf_fpga_predicted[:, 0], pf_fpga_predicted[:, 1],  color='green', s=20)
+                # trade-off from ASIC with tolerance
+                axes[1].scatter(pf_fpga_with_tolerance[:, 0], pf_fpga_with_tolerance[:, 1], color='green', s=20)
+                pf_fpga_predicted = pf_fpga_with_tolerance
+
+                plt.show()
+        else:
+            if plot_figure:
+                MultiObjective.visulize_trade_off(
+                    df, display_table=display_table, plot_figure=plot_figure)
 
         return MultiObjective.measure(pf_fpga, pf_fpga_predicted)
 
