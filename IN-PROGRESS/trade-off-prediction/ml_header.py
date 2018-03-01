@@ -11,6 +11,7 @@ from sklearn import linear_model
 from sklearn import svm
 from sklearn import tree
 from sklearn import ensemble
+from sklearn import cluster
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import learning_curve
 from sklearn.model_selection import validation_curve
