@@ -5,6 +5,7 @@ import pandas as pd
 from IPython.display import display
 
 from sklearn.metrics import mean_squared_error
+from sklearn import metrics
 from sklearn.preprocessing import StandardScaler
 from sklearn import linear_model
 from sklearn import svm
@@ -19,6 +20,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import cross_val_score
 from sklearn.feature_selection import RFECV
 from sklearn.feature_selection import SelectFromModel
+from sklearn.cluster import KMeans
 
 pd.set_option("display.max_columns", 50)
 
