@@ -37,6 +37,6 @@ estimators = (
     svm.SVR(kernel='linear'),
     tree.DecisionTreeRegressor(random_state=42),
     ensemble.RandomForestRegressor(random_state=42),
-    ensemble.AdaBoostRegressor(random_state=42),
+    ensemble.AdaBoostRegressor(tree.DecisionTreeRegressor(), n_estimators=300),
     ensemble.GradientBoostingRegressor(random_state=42),
 )
