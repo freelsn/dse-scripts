@@ -1,32 +1,50 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
+import sys
+import random
+import time
+import re
 
+import pandas as pd
+import matplotlib
+import numpy as np
+import scipy as sp
+import IPython
 from IPython.display import display
 
-from sklearn.metrics import mean_squared_error
-from sklearn import metrics
-from sklearn.preprocessing import StandardScaler
-from sklearn import linear_model
+# collection of machine learning algorithms
+import sklearn
+# common algorithms
 from sklearn import svm
 from sklearn import tree
+from sklearn import linear_model
+from sklearn import neighbors
+from sklearn import naive_bayes
 from sklearn import ensemble
+from sklearn import discriminant_analysis
+from sklearn import gaussian_process
 from sklearn import cluster
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import learning_curve
-from sklearn.model_selection import validation_curve
-from sklearn.model_selection import ShuffleSplit
-from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.model_selection import StratifiedKFold
-from sklearn.model_selection import cross_val_score
-from sklearn.feature_selection import RFECV
-from sklearn.feature_selection import SelectFromModel
-from sklearn.cluster import KMeans
+# common helpers
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
+from sklearn import feature_selection
+from sklearn import model_selection
+from sklearn import metrics
 
+# visulization
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.pylab as pylab
+import seaborn as sns
+from pandas.tools.plotting import scatter_matrix
+
+# universal settings
 pd.set_option("display.max_columns", 50)
-
+pd.set_option('precision', 4)
 np.set_printoptions(precision=4)
 np.set_printoptions(suppress=True)
+mpl.style.use('ggplot')
+sns.set_style('white')
+pylab.rcParams['figure.figsize'] = 12, 8
 
 estimators = (
     linear_model.LinearRegression(),
