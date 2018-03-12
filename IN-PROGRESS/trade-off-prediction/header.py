@@ -22,6 +22,7 @@ from sklearn import ensemble
 from sklearn import discriminant_analysis
 from sklearn import gaussian_process
 from sklearn import cluster
+from sklearn import decomposition
 # common helpers
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
@@ -47,9 +48,9 @@ sns.set_style('white')
 pylab.rcParams['figure.figsize'] = 12, 8
 
 
-#==============================================================================
+########################################################################
 # Multi-objective optimization functions
-#------------------------------------------------------------------------------
+
 
 def remove_duplicates(data):
     """For Numpy 2-d array, remove the duplications."""
@@ -80,10 +81,8 @@ def is_pareto_efficient(data, mode='default'):
             data_t = data[~np.all(data == c, axis=1)]
             arr_t = data_t > c
         else:  # Customized objectives
-            dim_0 = np.array(data_t[:, 0] > c[0]).reshape(
-                data.shape[0] - 1, 1)
-            dim_1 = np.array(data_t[:, 1] > c[1]).reshape(
-                data.shape[0] - 1, 1)
+            dim_0 = np.array(data_t[:, 0] > c[0]).reshape(data.shape[0] - 1, 1)
+            dim_1 = np.array(data_t[:, 1] > c[1]).reshape(data.shape[0] - 1, 1)
             arr_t = np.append(dim_0, dim_1, axis=1)
 
         is_efficient[i] = np.all(np.any(arr_t, axis=1))
@@ -187,19 +186,17 @@ def metrics_moo(ref=None, appox=None):
             'hypervolume': hypervolume_ratio, 'dominance': dominance,
             'cardinality': cardinality}
 
-#------------------------------------------------------------------------------
-# Multi-objective functions
-#==============================================================================
+# Multi-objective optimization functions
+########################################################################
 
 
-#==============================================================================
+########################################################################
 # Getting the data
-#------------------------------------------------------------------------------
 
 class GetData(object):
     """Reading data"""
-    def __init__(self, folder, benchmarks, load_asic_45=True,
-                 load_fpga_v4=True, load_fpga_v5=True, filtering_latency=True):
+
+    def __init__(self, folder, benchmarks, load_asic_45=True, load_fpga_v4=True, load_fpga_v5=True, filtering_latency=True):
         self.folder = folder
         self.benchmarks = benchmarks
         self.load_asic_45 = load_asic_45
@@ -221,8 +218,7 @@ class GetData(object):
         asic_45, fpga_v4, fpga_v5 = {}, {}, {}
         for i in self.benchmarks:
             file_dir = f'{self.folder}/{i}/'
-            asic_45[i], fpga_v4[i], fpga_v5[i] = self._load_data_single(
-                file_dir)
+            asic_45[i], fpga_v4[i], fpga_v5[i] = self._load_data_single(file_dir)
         self.asic_45 = asic_45
         self.fpga_v4 = fpga_v4
         self.fpga_v5 = fpga_v5
@@ -234,7 +230,8 @@ class GetData(object):
     def _concatenate_filter_data(self, asic, fpga):
         """Merge features and labels, remove items with mismatching latency."""
         # matches = asic['Attr_with_L'] == fpga['Attr_with_L']
-        common_attr = [i for i in fpga['Attr_with_L'] if i in list(asic['Attr_with_L'])]
+        common_attr = [i for i in fpga['Attr_with_L']
+                       if i in list(asic['Attr_with_L'])]
         asic = asic[asic['Attr_with_L'].isin(common_attr)].reset_index()
         fpga = fpga[fpga['Attr_with_L'].isin(common_attr)].reset_index()
         combined = pd.concat(
@@ -266,23 +263,22 @@ class GetData(object):
                     data_v5[i] = self._concatenate_filter_data(self.asic_45[i], self.fpga_v5[i])
                 self.data_v5 = data_v5
 
-#------------------------------------------------------------------------------
 # Getting the data
-#==============================================================================
+########################################################################
 
 
-#==============================================================================
+########################################################################
 # Direct mapping
-#------------------------------------------------------------------------------
 
 class DirectMapping(object):
     """Direct mapping method.
 
-    Example
-    -------
+    Examples
+    --------
     >>> dm = DirectMapping()
-    >>> dm.direct_mapping(df, tolerance=0.02, plot_figure=True)
+    >>> dm.main(df, tolerance=0.02, plot_figure=True)
     """
+
     def __init__(self):
         pass
 
@@ -302,7 +298,6 @@ class DirectMapping(object):
         A `tuple`, (lower_bound, upper_bound, Latency)
         """
         return ((1 - tolerance) * x[0], (1 + tolerance) * x[0], x[1])
-
 
     def in_range(self, x, interval, equal_latency=True):
         """Check if a value is in a set of intervals.
@@ -348,7 +343,6 @@ class DirectMapping(object):
                     break
         return is_in
 
-
     def set_label(self, df, tolerance=0, obj_asic=['Latency', 'AREA'], obj_fpga=['Latency', 'Slices'], al=['AREA', 'Latency']):
         df['PF_ASIC'] = is_pareto_efficient(df[obj_asic].as_matrix())
         df['PF_FPGA'] = is_pareto_efficient(df[obj_fpga].as_matrix())
@@ -359,8 +353,21 @@ class DirectMapping(object):
         df['WithTolerance'] = df[al].apply(lambda x: self.in_range(x, interval, equal_latency=False), axis=1)
         df['WithToleranceL'] = df[al].apply(lambda x: self.in_range(x, interval, equal_latency=True), axis=1)
 
-
     def visulize(self, df, tolerance=0, x_asic='Latency', y_asic='AREA', x_fpga='Latency', y_fpga='Slices'):
+        """Plot figures
+
+        Notes
+        -----
+        Figure 1: Design space on ASIC
+
+        Figure 2: Design space on FPGA
+
+        Figure 3: Direct mapping without tolerance
+
+        Figure 4: Direct mapping with tolerance
+
+        Figure 5: Direct mapping with tolerance and equal latency
+        """
         fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(16, 18))
 
         df.plot(kind='scatter', x=x_asic, y=y_asic, alpha=0.2, ax=axes[0, 0])
@@ -384,12 +391,21 @@ class DirectMapping(object):
         df.plot(kind='scatter', x=x_fpga, y=y_fpga, alpha=0.2, ax=axes[2, 0])
         df.loc[df.PF_FPGA].plot(kind='scatter', x=x_fpga, y=y_fpga, color='r', s=50, ax=axes[2, 0], label='exact Pareto optimal')
         df.loc[df.WithToleranceL].plot(kind='scatter', x=x_fpga, y=y_fpga, color='y', s=30, ax=axes[2, 0], label='mapped Pareto optimal')
-        axes[2, 0].set_title(f'Direct Mapping with tolerance {tolerance} and equal Latency')
+        axes[2, 0].set_title(
+            f'Direct Mapping with tolerance {tolerance} and equal Latency')
 
         plt.show()
 
+    def main(self, df, tolerance=0, plot_figure=False):
+        """
+        Notes
+        -----
+        `self.results_no_tol`: without tolerance
 
-    def direct_mapping(self, df, tolerance=0, plot_figure=False):
+        `self.results_tol`: with tolerance
+
+        `self.results_tol_eq_l`: with tolerance and equal latency
+        """
         self.set_label(df, tolerance=tolerance)
 
         if plot_figure:
@@ -405,11 +421,220 @@ class DirectMapping(object):
         self.results_tol = metrics_moo(ref=pf_exact, appox=pf_tolerance)
 
         pf_tolerance_eq_l = df.loc[df.WithToleranceL][obj_fpga].as_matrix()
-        self.results_tol_eq_l = metrics_moo(ref=pf_exact, appox=pf_tolerance_eq_l)
+        self.results_tol_eq_l = metrics_moo(
+            ref=pf_exact, appox=pf_tolerance_eq_l)
 
-#------------------------------------------------------------------------------
 # Direct mapping
-#==============================================================================
+########################################################################
+
+
+def es_vs_dm(es, dm, option='all', m_big=['hypervolume', 'dominance'], m_small=['adrs_ave']):
+    """Find the combos of benchmarks as training set that leading to better results.
+
+    Parameters
+    ----------
+    es: pd.DataFrame
+        Exhaustive search results using machine learning algorithms
+    dm: pd.DataFrame
+        Direct mapping results
+    option: str, optional
+        `all`: (default): the trained model performs better on the rest benchmarks.
+        "some": the trained model performs better on some other test benchmarks.
+    m_big: list, optional
+        Metrics that the bigger the better.
+    m_small: list, optional
+        Metrics that the smaller the better.
+
+    Returns
+    -------
+    valid_combo: 2-d array
+        The combos of benchmarks as training set.
+    valid_bench: 2-d array
+        The combos of benchmarks as testing set.
+
+    Note
+    ----
+    The complete metrics list:
+        m_big: hypervolume, dominance
+        m_small: adrs_ave, adrs_max, adrs_ave_rms, adrs_max_rms, cardinality
+    """
+    valid_combo = list()
+    valid_bench = list()
+    combos = set(es['train'])
+    for combo in combos:
+        df_es = es.set_index('train').loc[[combo]].reset_index(drop=True).set_index('test')
+        df_dm = dm.set_index('benchmark').loc[df_es.index]
+        bool_all = pd.DataFrame({'base': [True for i in range(df_es.shape[0])]}, index=df_es.index)
+        if m_big:
+            bool_big = (df_es >= df_dm)[m_big]
+            bool_all = pd.concat([bool_all, bool_big], axis=1)
+        if m_small:
+            bool_small = (df_es <= df_dm)[m_small]
+            bool_all = pd.concat([bool_all, bool_small], axis=1)
+        bench = list(df_es[np.all(bool_all, axis=1)].index)
+
+        if option == 'all' and np.all(bool_all):
+            valid_combo.append(combo)
+            valid_bench.append(bench)
+        if option == 'some' and len(bench) > 0:
+            valid_combo.append(combo)
+            valid_bench.append(bench)
+
+    return valid_combo, valid_bench
+
+
+def pca_plot(df, title=None, predictors=['MUX', 'pin_pair', 'net', 'MISC']):
+    """For a benchmark, choose the predictors,
+    if there are more than two predictors,
+    use PCA to reduce the dimension to two.
+
+    Plot in a 2-d figure, annotate the Pareto optimal sets on ASIC and FPGA.
+    See if they can be separated nice and clean.
+    """
+    X = df[predictors]
+    if len(predictors) > 2:
+        pca = decomposition.PCA(n_components=2)
+        pca.fit(X)
+        X_pca = pca.transform(X)
+    else:
+        X_pca = X.values
+
+    pf_asic_bool = is_pareto_efficient(df[['Latency', 'AREA']].as_matrix())
+    pf_fpga_bool = is_pareto_efficient(df[['Latency', 'Slices']].as_matrix())
+
+    X_pca_df = pd.DataFrame(X_pca, columns=['x', 'y'])
+    X_pca_df['PF_asic'] = pf_asic_bool
+    X_pca_df['PF_fpga'] = pf_fpga_bool
+
+    df_merged = pd.concat([df, X_pca_df], axis=1)
+
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 6))
+    X_pca_df.plot(kind='scatter', x='x', y='y', ax=axes[0])
+    X_pca_df.loc[X_pca_df.PF_asic].plot(kind='scatter', x='x', y='y', color='r', ax=axes[0], label='PF_ASIC')
+    X_pca_df.loc[X_pca_df.PF_fpga].plot(kind='scatter', x='x', y='y', color='y', ax=axes[0], label='PF_FPGA')
+
+    df_merged.plot(kind='scatter', x='AREA', y='Slices', ax=axes[1])
+    df_merged.loc[df_merged.PF_asic].plot(kind='scatter', x='AREA', y='Slices', color='r', ax=axes[1], label='PF_ASIC')
+    df_merged.loc[df_merged.PF_fpga].plot(kind='scatter', x='AREA', y='Slices', color='y', ax=axes[1], label='PF_FPGA')
+
+    plt.suptitle(title)
+    plt.show()
+
+
+########################################################################
+# Machine learning general functions
+
+class ML(object):
+    """Functions for machine learning."""
+
+    @staticmethod
+    def split_data(df, distribution=None, distribution_name='Latency',
+                   train_size=None, test_size=None):
+        if distribution is not None:
+            # if the number of elements in a class is 1
+            value_counts = df[distribution_name].value_counts()
+            if np.any(value_counts == 1):
+                group_1 = value_counts[value_counts == 1].keys()
+                df = pd.concat([df, df[df[distribution_name].isin(group_1)]], ignore_index=True)
+                distribution = df[distribution_name].copy()
+            split = model_selection.StratifiedShuffleSplit(n_splits=1, train_size=train_size, test_size=test_size, random_state=42)
+            for train_index, test_index in split.split(df, distribution):
+                train_set = df.iloc[train_index]
+                test_set = df.iloc[test_index]
+            return train_set, test_set
+
+    @staticmethod
+    def separate_feature_label(df, valid_features=None, invalid_features=None,
+                               label=None):
+        if valid_features:
+            X = df[valid_features].copy()
+        if invalid_features:
+            X = df.drop(invalid_features, axis=1)
+        if label:
+            y = df[label].copy()
+        return X, y
+
+    @staticmethod
+    def feature_scaling(X):
+        scaler = StandardScaler()
+        return scaler.fit_transform(X)
+
+    @staticmethod
+    def fix_missing_data(df):
+        # replace non-numeric values with 0
+        return df.replace(regex=[r'-', r'0'], value=0)
+
+    @staticmethod
+    def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None, n_jobs=1, train_sizes=np.linspace(.1, 1.0, 10)):
+        """
+        Generate a simple plot of the test and training learning curve.
+
+        Parameters
+        ----------
+        estimator : object type that implements the "fit" and "predict" methods
+            An object of that type which is cloned for each validation.
+
+        title : string
+            Title for the chart.
+
+        X : array-like, shape (n_samples, n_features)
+            Training vector, where n_samples is the number of samples and
+            n_features is the number of features.
+
+        y : array-like, shape (n_samples) or (n_samples, n_features), optional
+            Target relative to X for classification or regression;
+            None for unsupervised learning.
+
+        ylim : tuple, shape (ymin, ymax), optional
+            Defines minimum and maximum yvalues plotted.
+
+        cv : int, cross-validation generator or an iterable, optional
+            Determines the cross-validation splitting strategy.
+            Possible inputs for cv are:
+              - None, to use the default 3-fold cross-validation,
+              - integer, to specify the number of folds.
+              - An object to be used as a cross-validation generator.
+              - An iterable yielding train/test splits.
+
+            For integer/None inputs, if ``y`` is binary or multiclass,
+            :class:`StratifiedKFold` used. If the estimator is not a classifier
+            or if ``y`` is neither binary nor multiclass, :class:`KFold` is used.
+
+            Refer :ref:`User Guide <cross_validation>` for the various
+            cross-validators that can be used here.
+
+        n_jobs : integer, optional
+            Number of jobs to run in parallel (default 1).
+        """
+        plt.figure()
+        plt.title(title)
+        if ylim is not None:
+            plt.ylim(*ylim)
+        plt.xlabel("Training examples")
+        plt.ylabel("Score")
+        train_sizes, train_scores, test_scores = model_selection.learning_curve(estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
+        train_scores_mean = np.mean(train_scores, axis=1)
+        train_scores_std = np.std(train_scores, axis=1)
+        test_scores_mean = np.mean(test_scores, axis=1)
+        test_scores_std = np.std(test_scores, axis=1)
+        plt.grid()
+
+        plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
+                         train_scores_mean + train_scores_std, alpha=0.1,
+                         color="r")
+        plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
+                         test_scores_mean + test_scores_std, alpha=0.1, color="g")
+        plt.plot(train_sizes, train_scores_mean, 'o-', color="r",
+                 label="Training score")
+        plt.plot(train_sizes, test_scores_mean, 'o-', color="g",
+                 label="Cross-validation score")
+
+        plt.legend(loc="best")
+        # return plt
+        return np.transpose([train_sizes, train_scores_mean, test_scores_mean])
+
+# Machine learning general functions
+########################################################################
 
 
 if __name__ == '__main__':
@@ -422,16 +647,49 @@ if __name__ == '__main__':
     print("scikit-learn version: {}". format(sklearn.__version__))
     print('-' * 25)
 
-    estimators_reg = {
-        'LinReg': linear_model.LinearRegression(),
-        'Lasso': linear_model.Lasso(),
-        'ElasticNet': linear_model.ElasticNet(),
-        'Ridge': linear_model.Ridge(),
-        'SVR': svm.SVR(kernel='linear'),
-        'LinearSVR': svm.LinearSVR(random_state=42),
-        'DecTreeReg': tree.DecisionTreeRegressor(random_state=42),
-        'RF': ensemble.RandomForestRegressor(random_state=42),
-        'AdaBoostDecTreeReg': ensemble.AdaBoostRegressor(
-            tree.DecisionTreeRegressor(), n_estimators=300),
-        'GradBoostReg': ensemble.GradientBoostingRegressor(random_state=42),
-    }
+    args = sys.argv
+
+    # estimators_reg = {
+    #     'LinReg': linear_model.LinearRegression(),
+    #     'Lasso': linear_model.Lasso(),
+    #     'ElasticNet': linear_model.ElasticNet(),
+    #     'Ridge': linear_model.Ridge(),
+    #     'SVR': svm.SVR(kernel='linear'),
+    #     'LSVR': svm.LinearSVR(),
+    #     'LinearSVR': svm.LinearSVR(random_state=42),
+    #     'DecTreeReg': tree.DecisionTreeRegressor(random_state=42),
+    #     'RF': ensemble.RandomForestRegressor(random_state=42),
+    #     'AdaBoostDecTreeReg': ensemble.AdaBoostRegressor(
+    #         tree.DecisionTreeRegressor(), n_estimators=300),
+    #     'GradBoostReg': ensemble.GradientBoostingRegressor(random_state=42),
+    # }
+
+    benchmarks = ('adpcm_encoder', 'aes', 'ann', 'average', 'decimation',
+                  'fft_fixed', 'fir', 'idct', 'interpolation', 'kasumi',
+                  'qsort', 'snow3g', 'sobel')  # 13
+    gd = GetData(args[1], benchmarks)
+    gd.main()
+
+    # Potential features and the label
+    features = ['AREA', 'state', 'FU', 'REG', 'MUX', 'DEC', 'pin_pair',
+                'net', 'max', 'min', 'ave', 'MISC', 'MEM', 'sim', 'Pmax',
+                'Pmin', 'Pave', 'Latency', 'BlockMemoryBit', 'DSP', 'Slices']
+    # 'CP_delay',
+    invalid_features = ['Slices', 'Latency']
+    valid_features = [i for i in features if i not in invalid_features]
+    label = 'Slices'
+
+    # Load exhaustive training results
+    es_v4_lr = pd.read_csv('es_v4_lr.csv')
+    es_v4_ada = pd.read_csv('es_v4_ada.csv')
+    es_v4_rf = pd.read_csv('es_v4_rf.csv')
+
+    # direct mapping
+    dm_v4 = pd.read_csv('direct_mapping_v4.csv')
+    dm_v5 = pd.read_csv('direct_mapping_v5.csv')
+
+    # direct mapping with tolerance
+    dm_v4_01 = pd.read_csv('direct_mapping_v4_tolerance_0.1.csv')
+    dm_v5_01 = pd.read_csv('direct_mapping_v5_tolerance_0.1.csv')
+    dm_v4_005 = pd.read_csv('direct_mapping_v4_tolerance_0.05.csv')
+    dm_v5_005 = pd.read_csv('direct_mapping_v5_tolerance_0.05.csv')
