@@ -2,6 +2,7 @@ import sys
 import random
 import time
 import re
+import itertools
 
 import pandas as pd
 import matplotlib
@@ -27,6 +28,7 @@ from sklearn import decomposition
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import LabelEncoder
+from sklearn import preprocessing
 from sklearn import feature_selection
 from sklearn import model_selection
 from sklearn import metrics
@@ -37,6 +39,8 @@ import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
 import seaborn as sns
 from pandas.tools.plotting import scatter_matrix
+# plot decision tree
+import graphviz
 
 # universal settings
 pd.set_option("display.max_columns", 50)
@@ -179,7 +183,7 @@ def metrics_moo(ref=None, appox=None):
     dominance = dominance / ref_cnt
 
     # Cardinality
-    cardinality = appox_cnt
+    cardinality = appox.shape[0]
 
     return {'adrs_ave': adrs_ave, 'adrs_max': adrs_max,
             'adrs_ave_rms': adrs_ave_rms, 'adrs_max_rms': adrs_max_rms,
@@ -232,8 +236,8 @@ class GetData(object):
         # matches = asic['Attr_with_L'] == fpga['Attr_with_L']
         common_attr = [i for i in fpga['Attr_with_L']
                        if i in list(asic['Attr_with_L'])]
-        asic = asic[asic['Attr_with_L'].isin(common_attr)].reset_index()
-        fpga = fpga[fpga['Attr_with_L'].isin(common_attr)].reset_index()
+        asic = asic[asic['Attr_with_L'].isin(common_attr)].reset_index(drop=True)
+        fpga = fpga[fpga['Attr_with_L'].isin(common_attr)].reset_index(drop=True)
         combined = pd.concat(
             [asic, fpga[['AREA']].rename(columns={'AREA': 'Slices'})], axis=1)
         filtered = combined
@@ -267,7 +271,7 @@ class GetData(object):
 ########################################################################
 
 
-########################################################################
+# ######################################################################
 # Direct mapping
 
 class DirectMapping(object):
@@ -353,6 +357,8 @@ class DirectMapping(object):
         df['WithTolerance'] = df[al].apply(lambda x: self.in_range(x, interval, equal_latency=False), axis=1)
         df['WithToleranceL'] = df[al].apply(lambda x: self.in_range(x, interval, equal_latency=True), axis=1)
 
+        self.df = df
+
     def visulize(self, df, tolerance=0, x_asic='Latency', y_asic='AREA', x_fpga='Latency', y_fpga='Slices'):
         """Plot figures
 
@@ -407,6 +413,7 @@ class DirectMapping(object):
         `self.results_tol_eq_l`: with tolerance and equal latency
         """
         self.set_label(df, tolerance=tolerance)
+        df = self.df
 
         if plot_figure:
             self.visulize(df, tolerance=tolerance)
@@ -421,11 +428,10 @@ class DirectMapping(object):
         self.results_tol = metrics_moo(ref=pf_exact, appox=pf_tolerance)
 
         pf_tolerance_eq_l = df.loc[df.WithToleranceL][obj_fpga].as_matrix()
-        self.results_tol_eq_l = metrics_moo(
-            ref=pf_exact, appox=pf_tolerance_eq_l)
+        self.results_tol_eq_l = metrics_moo(ref=pf_exact, appox=pf_tolerance_eq_l)
 
 # Direct mapping
-########################################################################
+# ######################################################################
 
 
 def es_vs_dm(es, dm, option='all', m_big=['hypervolume', 'dominance'], m_small=['adrs_ave']):
@@ -521,7 +527,57 @@ def pca_plot(df, title=None, predictors=['MUX', 'pin_pair', 'net', 'MISC']):
     plt.show()
 
 
-########################################################################
+# ######################################################################
+# Feature selection
+
+def feature_ranking(X, y, kind='random_forest'):
+    """Get feature importance for ranking and the optimal number of features.
+
+    Notes
+    -----
+    `Random forest` leads to different feature importance than `Mutual info`.
+
+    Scaling X or not does not affect the result.
+    """
+    # hyper-parameters for random forest
+    param_dict_small = {
+        'n_estimators': [3, 10, 30],
+        'max_depth': [1, 3, 10],
+        'max_features': [0.1, 0.3, 1.0],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 3, 10],
+        'bootstrap': [True, False],
+        'criterion': ['mse', 'mae'],
+    }
+
+    # get feature importance for ranking
+    if kind == 'random_forest':
+        # find the best random forest parameters for feature importance
+        grid_search = model_selection.GridSearchCV(ensemble.RandomForestRegressor(random_state=42),
+                                                   param_grid=param_dict_small, scoring='r2')
+        grid_search.fit(X, y)
+        feature_importance = grid_search.best_estimator_.feature_importances_
+    elif kind == 'mutual_info':
+        mi = feature_selection.mutual_info_regression(X, y, random_state=42)
+        mi /= np.max(mi)
+        feature_importance = mi
+    else:
+        raise Exception('Unsupported feature importance method.')
+    rank = X.columns[np.argsort(feature_importance)[::-1]]
+    rank = np.array(rank)
+
+    # the optimal number of features
+    rfecv = feature_selection.RFECV(estimator=ensemble.RandomForestRegressor(random_state=42),
+        step=1, cv=model_selection.ShuffleSplit(random_state=42), scoring='r2')
+    rfecv.fit(X, y)
+    n_features = rfecv.n_features_
+
+    return n_features, rank, feature_importance
+
+# Feature selection
+# ######################################################################
+
+# ######################################################################
 # Machine learning general functions
 
 class ML(object):
@@ -638,14 +694,14 @@ class ML(object):
 
 
 if __name__ == '__main__':
-    print("Python version: {}". format(sys.version))
-    print("pandas version: {}". format(pd.__version__))
-    print("matplotlib version: {}". format(matplotlib.__version__))
-    print("NumPy version: {}". format(np.__version__))
-    print("SciPy version: {}". format(sp.__version__))
-    print("IPython version: {}". format(IPython.__version__))
-    print("scikit-learn version: {}". format(sklearn.__version__))
-    print('-' * 25)
+    # print("Python version: {}". format(sys.version))
+    # print("pandas version: {}". format(pd.__version__))
+    # print("matplotlib version: {}". format(matplotlib.__version__))
+    # print("NumPy version: {}". format(np.__version__))
+    # print("SciPy version: {}". format(sp.__version__))
+    # print("IPython version: {}". format(IPython.__version__))
+    # print("scikit-learn version: {}". format(sklearn.__version__))
+    # print('-' * 25)
 
     args = sys.argv
 
@@ -675,21 +731,47 @@ if __name__ == '__main__':
                 'net', 'max', 'min', 'ave', 'MISC', 'MEM', 'sim', 'Pmax',
                 'Pmin', 'Pave', 'Latency', 'BlockMemoryBit', 'DSP', 'Slices']
     # 'CP_delay',
-    invalid_features = ['Slices', 'Latency']
+    invalid_features = ['Slices', 'Latency', 'AREA']
     valid_features = [i for i in features if i not in invalid_features]
     label = 'Slices'
 
-    # Load exhaustive training results
-    es_v4_lr = pd.read_csv('es_v4_lr.csv')
-    es_v4_ada = pd.read_csv('es_v4_ada.csv')
-    es_v4_rf = pd.read_csv('es_v4_rf.csv')
+    # fix missing values and set the labels
+    dm = DirectMapping()
+    dict_df_fixed = dict()
+    dict_df_labeled = dict()
+    dict_df_scaled = dict()
+    for i in benchmarks:
+        # fix missing data
+        df = ML.fix_missing_data(gd.data_v4[i][features])
+        dict_df_fixed[i] = df.copy()
+
+        # set Pareto optimal and direct mapping labels
+        dm.set_label(df)
+        dict_df_labeled[i] = dm.df.copy()
+
+        # scaling valid features
+        df_scaled = dm.df.copy()
+        df_scaled[valid_features] = ML.feature_scaling(df_scaled[valid_features])
+        dict_df_scaled[i] = df_scaled
+
+    # # Load exhaustive training results
+    # es_v4_lr = pd.read_csv('es_v4_lr.csv')
+    # es_v4_ada = pd.read_csv('es_v4_ada.csv')
+    # es_v4_rf = pd.read_csv('es_v4_rf.csv')
 
     # direct mapping
-    dm_v4 = pd.read_csv('direct_mapping_v4.csv')
-    dm_v5 = pd.read_csv('direct_mapping_v5.csv')
+    # dm_v4 = pd.read_csv('direct_mapping_v4.csv')
+    # dm_v5 = pd.read_csv('direct_mapping_v5.csv')
 
-    # direct mapping with tolerance
-    dm_v4_01 = pd.read_csv('direct_mapping_v4_tolerance_0.1.csv')
-    dm_v5_01 = pd.read_csv('direct_mapping_v5_tolerance_0.1.csv')
-    dm_v4_005 = pd.read_csv('direct_mapping_v4_tolerance_0.05.csv')
-    dm_v5_005 = pd.read_csv('direct_mapping_v5_tolerance_0.05.csv')
+    # # direct mapping with tolerance
+    # dm_v4_01 = pd.read_csv('direct_mapping_v4_tolerance_0.1.csv')
+    # dm_v5_01 = pd.read_csv('direct_mapping_v5_tolerance_0.1.csv')
+    # dm_v4_005 = pd.read_csv('direct_mapping_v4_tolerance_0.05.csv')
+    # dm_v5_005 = pd.read_csv('direct_mapping_v5_tolerance_0.05.csv')
+
+    # easy set up
+    benchmark_test = 'adpcm_encoder'
+    df = gd.data_v4[benchmark_test]
+    df_fixed = dict_df_fixed[benchmark_test]
+    df_labeled = dict_df_labeled[benchmark_test]
+    df_scaled = dict_df_scaled[benchmark_test]
